@@ -2,6 +2,7 @@ function model = run_pretrain()
 % Layer-wise pretraining.
 
 rng('shuffle');
+setup_paths
 kernels;
 
 param = [];
