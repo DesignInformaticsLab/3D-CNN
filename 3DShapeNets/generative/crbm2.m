@@ -34,6 +34,7 @@ new_list = balance_data(data_list, batch_size);
 n = length(new_list);
 batch_num = n / batch_size;
 assert(batch_num == floor(batch_num));
+%         model.layers{l}.b = 0;
 for iter = 1 : param.epochs
     shuffle_index = randperm(n);
     for b = 1 : batch_num
@@ -98,10 +99,11 @@ for iter = 1 : param.epochs
         neg_grdw = myConvolve(kConv_weight, visible_sample, temp_neg_hidden_prob, stride, 'weight');
 
         % compute the gradient
-        if iter <= floor(param.epochs * 0.25)
+        if iter <= floor(param.epochs * 0.5) %0.25
             momentum = param.momentum(1);
         else
             momentum = param.momentum(2);
+            lr = 0.005; % MAX added this
         end
         mult = numel(the_filter) / (numel(the_filter) - sum(the_filter(:)));
         model.layers{l}.grdw = momentum * model.layers{l}.grdw + lr * mult * (pos_grdw - neg_grdw - wd * model.layers{l}.w);
@@ -110,6 +112,7 @@ for iter = 1 : param.epochs
 
         model.layers{l}.w = model.layers{l}.w + model.layers{l}.grdw;
         model.layers{l}.b = model.layers{l}.b + model.layers{l}.grdb;
+%         model.layers{l}.b = 0;
         model.layers{l}.c = model.layers{l}.c + model.layers{l}.grdc;
 
     end

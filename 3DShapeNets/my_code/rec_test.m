@@ -69,3 +69,8 @@ predicted_label = bsxfun(@rdivide, predicted_label, sum(predicted_label, 2));
 
 acc = sum(predicted_label == label) / n;
 fprintf('acc is : %f\n', acc * 100);
+
+
+% for i=1:model.classes
+%     
+% end

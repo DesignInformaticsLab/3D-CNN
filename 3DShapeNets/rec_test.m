@@ -6,7 +6,7 @@ function [predicted_label] = rec_test(model)
 % The classification method is free-energy.
 
 debug = 0;
-if ~isfield('model.layers{2}','uw')
+if ~isfield(model.layers{2},'uw')
     model = merge_model(model);
 end
 global kConv_forward2 kConv_forward_c;

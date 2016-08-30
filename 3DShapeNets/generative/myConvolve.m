@@ -27,13 +27,7 @@ if strcmp(task,'forward')
         for b = 1 : filter_batch_num
             filterPerThread = 4; imagePerThread = 1;
             kConv.ThreadBlockSize = [32, 4];
-
-%             try
-%                 kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), numModulesX * numModulesY * numModulesZ * filter_batch_size / (filterPerThread * 4) ]; % filterPerThread, BlockSize.Y
-%             catch
-                kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), ceil(numModulesX * numModulesY * numModulesZ * filter_batch_size / (filterPerThread * 4) )]; % filterPerThread, BlockSize.Y
-%             end
-            
+            kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), numModulesX * numModulesY * numModulesZ * filter_batch_size / (filterPerThread * 4) ]; % filterPerThread, BlockSize.Y
             target_gpu = feval(kConv,...
                target(:,:,:,:,(b-1)*filter_batch_size+1 : b*filter_batch_size), data, kernel((b-1)*filter_batch_size+1 : b*filter_batch_size,:,:,:,:),...
                numImages, filter_batch_size, imgSizeZ, imgSizeY, imgSizeX, filterSize, ...
@@ -50,13 +44,8 @@ if strcmp(task,'forward')
         filterPerThread = 8; imagePerThread = 1;
 
         kConv.ThreadBlockSize = [32, 4];
+        kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), numModulesX * numModulesY * numModulesZ * numFilters / (filterPerThread * 4) ]; % filterPerThread, BlockSize.Y
 
-%         try
-%             kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), numModulesX * numModulesY * numModulesZ * numFilters / (filterPerThread * 4) ]; % filterPerThread, BlockSize.Y
-%         catch
-            kConv.GridSize = [ceil(numImages/(32 * imagePerThread)), ceil(numModulesX * numModulesY * numModulesZ * numFilters / (filterPerThread * 4)) ]; % filterPerThread, BlockSize.Y
-%         end
-        
         target = zeros(numImages, numModulesX, numModulesY, numModulesZ, numFilters, 'single');
 
         target_gpu = feval(kConv,...
@@ -78,13 +67,8 @@ elseif strcmp(task,'weight')
         pixelsPerThread = 5; preLoadCases = 32; scaleOutput = 1 ./ (numImages * partialSum);
 
         kConv.ThreadBlockSize = [16, 8];
-        
-%         try
-%             kConv.GridSize = [numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16, ceil(filterSize^3 /(8*pixelsPerThread))];
-%         catch
-            kConv.GridSize = [ceil(numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16), ceil(filterSize^3 /(8*pixelsPerThread))];
-%         end
-        
+        kConv.GridSize = [numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16, ceil(filterSize^3 /(8*pixelsPerThread))];
+
         target = zeros(numFilters, filterSize, filterSize, filterSize, numColors, 'single');
         target_gpu = feval(kConv, ....
            target, data, kernel,...
@@ -102,13 +86,8 @@ elseif strcmp(task,'weight')
         scaleOutput = 1 ./ (numImages * partialSum); numGroups = 1;
 
         kConv.ThreadBlockSize = [16, 8];
-        
-%         try
-%             kConv.GridSize = [numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16/filtersPerThread, ceil(filterSize^3 / 8) * (numColors / colorsPerThread)];
-%         catch
-            kConv.GridSize = [ceil(numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16/filtersPerThread), ceil(filterSize^3 / 8) * (numColors / colorsPerThread)];
-%         end
-        
+        kConv.GridSize = [numFilters*numModulesX*numModulesY*numModulesZ/partialSum/16/filtersPerThread, ceil(filterSize^3 / 8) * (numColors / colorsPerThread)];
+
         target = zeros(numFilters, filterSize, filterSize, filterSize, numColors, 'single');
         target_gpu = feval(kConv, ....
            target, data, kernel,...
@@ -127,12 +106,7 @@ elseif strcmp(task,'backward')
         paddingStart = 0; imgsPerThread = 2;
 
         kConv.ThreadBlockSize = [16, 16];
-        
-%         try
-%             kConv.GridSize = [ceil(numImages/(imgsPerThread *16)), imgSizeZ * ceil(imgSizeY/4) * ceil(imgSizeX/4)];
-%         catch
-            kConv.GridSize = [ceil(numImages/(imgsPerThread *16)), ceil(imgSizeZ * ceil(imgSizeY/4) * ceil(imgSizeX/4))];
-%         end
+        kConv.GridSize = [ceil(numImages/(imgsPerThread *16)), imgSizeZ * ceil(imgSizeY/4) * ceil(imgSizeX/4)];
 
         target = zeros(numImages, imgSizeX, imgSizeY, imgSizeZ, numColors, 'single');
         target_gpu = feval(kConv,....
@@ -151,13 +125,8 @@ elseif strcmp(task,'backward')
         colorsPerThread = 4; imgsPerThread = 1;
         
         kConv.ThreadBlockSize = [32, 4];
-        
-%         try
-%             kConv.GridSize = [ceil(numImages/(imgsPerThread * 32)) * (numColors / (4 * colorsPerThread)), imgSizeZ * imgSizeY * imgSizeX];
-%         catch
-            kConv.GridSize = [ceil(numImages/(imgsPerThread * 32) * (numColors / (4 * colorsPerThread))), imgSizeZ * imgSizeY * imgSizeX];
-%         end
-        
+        kConv.GridSize = [ceil(numImages/(imgsPerThread * 32)) * (numColors / (4 * colorsPerThread)), imgSizeZ * imgSizeY * imgSizeX];
+
         target = zeros(numImages, imgSizeX, imgSizeY, imgSizeZ, numColors, 'single');
         target_gpu = feval(kConv,....
             target, data, kernel,...

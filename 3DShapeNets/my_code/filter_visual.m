@@ -1,23 +1,83 @@
+% function filter_visual()
+% load('./pretrained_model.mat');
+% w = rec_conv(model,3); % filter of which rbm
+% save('w_projected.mat','w');
+% % plot_filter(w)
+% for i=1:10:16
+%     figure;
+%     cnt = 1;
+%     for t=6:-1:1
+%         subplot(2,3,cnt);
+%         show_sample(squeeze(w(i,:,:,:)),t)
+%         title(strcat('threshold ',num2str(t)))
+%         cnt = cnt + 1;
+%     end
+%
+%
+% end
+% end
+
 function filter_visual()
-load('./pretrained_model.mat');
-layer_idx = 2; % n-th hidden layer
-w = rec_conv(model,layer_idx,[]);
+load('model30_l2.mat');
+w = (rec_conv(model,3)); % filter of which rbm
+
 save('w_projected.mat','w');
-plot_filter(w)
-show_sample(w,0.5)
+% plot_filter(w)
+a = max(max(max(max(w))));
+b = min(min(min(min(w))));
+w = (w-b)/(a-b);
+tmp = sort(reshape(w,[],1),'descend');
+% t = tmp(ceil(length(tmp)/10))
+t = 0.1
+figure;
+cnt = 1;
+for i=1:2:16
+    subplot(2,4,cnt);
+    show_sample(squeeze(w(i,:,:,:)),t)
+    title(strcat('filter ',num2str(i)))
+    cnt = cnt + 1;
+    
 end
+figure;
+cnt = 1;
+for i=2:2:16
+    subplot(2,4,cnt);
+    show_sample(squeeze(w(i,:,:,:)),t)
+    title(strcat('filter ',num2str(i)))
+    cnt = cnt + 1;
+    
+end
+% figure;
+% cnt = 1;
+% for i=3:4:32
+%     subplot(2,4,cnt);
+%     show_sample(squeeze(w(i,:,:,:)),t)
+%     title(strcat('filter ',num2str(i)))
+%     cnt = cnt + 1;
+%     
+% end
+% figure;
+% cnt = 1;
+% for i=4:4:32
+%     subplot(2,4,cnt);
+%     show_sample(squeeze(w(i,:,:,:)),t)
+%     title(strcat('filter ',num2str(i)))
+%     cnt = cnt + 1;
+%     
+% end
+end
+
 
 function plot_filter(w)
 
 figure;
-assert(size(w,1)>=6);
-for i=1:6
-    subplot(2,3,i)
+assert(size(w,1)>=4);
+for i=1:4
+    subplot(2,2,i)
     vol3d('cdata', squeeze(w(i,:,:,:)), 'xdata', [0 1], 'ydata', [0 1], 'zdata', [0 1]);
     colormap(bone(256));
     alphamap([0 linspace(0.1, 0, 2)]);
-    %         axis equal off
-%     axis([0.1,0.9,0.1,0.9,0.1,0.9])
+    %     axis([0.1,0.9,0.1,0.9,0.1,0.9])
     set(gcf, 'color', 'w');
     view(3);
 end
@@ -25,45 +85,28 @@ end
 end
 
 
-function w = rec_conv(model,layer_idx,mat2)
-
-if isempty(mat2)
-    mat2 = squeeze(model.layers{layer_idx+1}.w); % upper layer
+function mat2 = rec_conv(model,layer_idx)
+kernels
+if layer_idx==1
+    mat2 = (model.layers{2}.w);
+    return
 end
-mat1 = squeeze(model.layers{layer_idx}.w); % lower layer
-l1 = size(mat1,2);
-l2 = size(mat2,2);
-w = zeros(size(mat2,1),l1+l2-1,l1+l2-1,l1+l2-1,size(mat1,5));
-for i=1:size(mat2,1) % number of final figures
-    for j=1:size(mat2,5) % number of channels
-        for k=1:size(mat1,5)
-            w1 = squeeze(mat1(j,:,:,:,k));
-            w2 = squeeze(mat2(i,:,:,:,j));
-            w(i,:,:,:,k) = squeeze(w(i,:,:,:,k)) + convn(w2,w1);
+mat2 = (model.layers{layer_idx+1}.w); % upper layer
+while layer_idx~=1
+    mat1 = (model.layers{layer_idx}.w); % lower layer
+    stride = model.layers{layer_idx}.stride;
+%     b = model.layers{layer_idx}.b;
+    if(layer_idx==2)
+        for i=1:1:size(mat2,1)
+            mat2_tmp(i,:,:,:) = squeeze(myConvolve2(kConv_backward, mat2(i,:,:,:,:), mat1, stride, 'backward'));           
         end
+        mat2 = mat2_tmp;
+%         mat2 = bsxfun(@plus, mat2, permute(b, [5,1,2,3,4]));
+    else
+        mat2 = myConvolve(kConv_backward_c, mat2, mat1, stride, 'backward');
+%         mat2 = bsxfun(@plus, mat2, permute(b, [5,1,2,3,4]));
     end
+    layer_idx = layer_idx - 1;
 end
-layer_idx = layer_idx - 1;
-if(layer_idx>2)
-    w = rec_conv(model,layer_idx,w);
-else
-    w = rec_conv2(model.layers{2}.w,w);
-    return;
-end
-
-end
-
-function w = rec_conv2(mat1,mat2)
-l1 = size(mat1,2);
-l2 = size(mat2,2);
-w = zeros(size(mat2,1),l1+l2-1,l1+l2-1,l1+l2-1);
-for i=1:size(mat2,1) % number of channels
-    for j=1:size(mat2,5)
-        w1 = squeeze(mat1(j,:,:,:));
-        w2 = squeeze(mat2(i,:,:,:,j));
-        w(i,:,:,:) = squeeze(w(i,:,:,:)) + convn(w2,w1);
-    end
-end
-
 end
 
